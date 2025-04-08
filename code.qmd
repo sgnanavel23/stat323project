@@ -4,9 +4,21 @@ format: html
 ---
 
 ```{r}
+artists <- c(
+  "Bruno Mars", "The Weeknd", "Lady Gaga", "Billie Eilish", "Kendrick Lamar",
+  "Coldplay", "Rihanna", "SZA", "Bad Bunny", "Taylor Swift", "Ariana Grande",
+  "Ed Sheeran", "Justin Bieber", "Drake", "David Guetta", "Dua Lipa",
+  "Eminem", "Travis Scott", "Sia", "Calvin Harris", "Sabrina Carpenter",
+  "Post Malone", "Shakira", "J Balvin", "Kanye West"
+)
+```
+
+
+```{r}
 # Load the packages
 library(httr)
 library(base64enc)
+library(jsonlite)
 
 # Set your Spotify API credentials
 client_id <- "a55a11bb77454560aaccf3d89fd09027"
@@ -20,10 +32,6 @@ search_spotify_artist(token, "Beyoncé")
 ```
 
 ```{r}
-library(httr)
-library(jsonlite)
-library(base64enc)
-
 get_token <- function(client_id, client_secret) {
   # Encode client ID and secret
   auth_string <- paste0(client_id, ":", client_secret)
@@ -61,9 +69,36 @@ search_spotify_artist <- function(token, artist_name) {
   )
   content <- httr::content(response, "parsed")
   
-  print(content)
+  if (length(content$artists$items) == 0) {
+    return(NULL)  # Skip if no artist found
+  }
+  
+  artist <- content$artists$items[[1]]
+  
+  return(data.frame(
+    name = artist$name,
+    id = artist$id,
+    popularity = artist$popularity,
+    followers = artist$followers$total,
+    genres = paste(artist$genres, collapse = ", "),
+    spotify_url = artist$external_urls$spotify,
+    stringsAsFactors = FALSE
+  ))
 }
+
 ```
+
+
+```{r}
+artist_data <- do.call(rbind, lapply(artists, function(name) {
+  tryCatch({
+    Sys.sleep(0.5)  # To avoid hitting rate limits
+    search_spotify_artist(token, name)
+  }, error = function(e) {
+    message("Failed to fetch: ", name)
+    return(NULL)
+  })
+}))
 
 ```
 
