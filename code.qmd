@@ -19,7 +19,7 @@ all_top_tracks <- all_top_tracks |>
   rename(track_popularity = popularity)
 
 artist_info <- artist_data |>
-  select(name, popularity, genres) |>
+  select(name, popularity, followers, genres) |>
   rename(
     artist = name,
     artist_popularity = popularity
