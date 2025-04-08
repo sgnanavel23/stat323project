@@ -102,3 +102,49 @@ artist_data <- do.call(rbind, lapply(artists, function(name) {
 
 ```
 
+```{r}
+get_artist_top_tracks <- function(token, artist_id, market = "US") {
+  url <- paste0("https://api.spotify.com/v1/artists/", artist_id, "/top-tracks?market=", market)
+  response <- httr::GET(url, httr::add_headers(Authorization = paste("Bearer", token)))
+  content <- httr::content(response, "parsed")
+  
+  if (length(content$tracks) == 0) {
+    return(NULL)
+  }
+  
+  tracks <- content$tracks
+  top_tracks_df <- do.call(rbind, lapply(tracks, function(track) {
+    data.frame(
+      name = track$name,
+      popularity = track$popularity,
+      album_name = track$album$name,
+      id = track$id,
+      stringsAsFactors = FALSE
+    )
+  }))
+  
+  return(top_tracks_df)
+}
+
+```
+
+```{r}
+all_top_tracks <- do.call(rbind, lapply(1:nrow(artist_data), function(i) {
+  tryCatch({
+    Sys.sleep(0.5)
+    tracks <- get_artist_top_tracks(token, artist_data$id[i])
+    
+    if (!is.null(tracks)) {
+      tracks$artist <- artist_data$name[i]
+    }
+    
+    return(tracks)
+  }, error = function(e) {
+    message("Failed to fetch top tracks for: ", artist_data$name[i])
+    return(NULL)
+  })
+}))
+
+
+```
+
